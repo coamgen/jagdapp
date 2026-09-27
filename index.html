@@ -152,16 +152,39 @@
         </div>
     </div>
 
+    <!-- Super-Admin Login Modal -->
+    <div id="admin-login-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h2>👑 Super-Admin Anmelden</h2>
+            <p class="small-text" style="margin-bottom: 16px;">Bitte gib das Super-Admin Passwort ein, um auf das System-Dashboard zuzugreifen.</p>
+            <input type="password" id="admin-password-input" placeholder="Passwort eingeben" style="width: 100%; padding: 10px; margin-bottom: 16px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif;">
+            <div style="display: flex; gap: 8px;">
+                <button id="btn-submit-admin-password" class="primary-btn">Anmelden</button>
+                <button id="btn-cancel-admin-password" class="secondary-btn">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Super-Admin Dashboard Modal -->
     <div id="admin-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 720px; width: 95%; text-align: left;">
+        <div class="modal-content" style="max-width: 760px; width: 95%; text-align: left;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h2 style="margin: 0;">👑 Super-Admin Dashboard</h2>
                 <button id="btn-close-admin-dashboard" class="secondary-btn" style="width: auto; padding: 4px 12px;">✖</button>
             </div>
-            <p class="small-text" style="margin-bottom: 16px;">Als Super-Admin hast du Vollzugriff auf alle im System registrierten Reviere.</p>
+            <p class="small-text" style="margin-bottom: 16px;">Als Super-Admin hast du Vollzugriff auf alle Reviere und kannst hier neue Revier-Codes generieren & verwalten.</p>
 
-            <div style="max-height: 400px; overflow-y: auto; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px;">
+            <!-- Admin New Revier Creator Box -->
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--primary); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                <h3 style="font-size: 0.95rem; color: var(--primary); margin-bottom: 8px;">➕ Neues Revier / Revier-Code anlegen</h3>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input type="text" id="admin-new-revier-name" placeholder="Reviername (z.B. Revier Forst)" style="flex: 2; min-width: 180px; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif;">
+                    <input type="text" id="admin-new-revier-code" placeholder="Wunsch-Code (z.B. REV-FORST)" style="flex: 1; min-width: 140px; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif; text-transform: uppercase;">
+                    <button id="btn-admin-create-revier" class="primary-btn" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">Revier-Code Erstellen</button>
+                </div>
+            </div>
+
+            <div style="max-height: 340px; overflow-y: auto; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: var(--text-main);">
                     <thead>
                         <tr style="border-bottom: 1px solid var(--border-color); text-align: left; color: var(--primary);">
@@ -180,7 +203,6 @@
 
             <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
                 <span id="admin-total-count" class="small-text" style="color: var(--text-muted);">Gesamt: 0 Reviere</span>
-                <button id="btn-admin-create-demo" class="secondary-btn" style="width: auto; padding: 6px 14px; font-size: 0.8rem;">➕ Demo-Revier erstellen</button>
             </div>
         </div>
     </div>

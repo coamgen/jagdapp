@@ -1623,15 +1623,32 @@ const newRevierNameInput = document.getElementById('new-revier-name');
 const btnCloseRevierSelect = document.getElementById('btn-close-revier-select');
 const btnTriggerAdminLogin = document.getElementById('btn-trigger-admin-login');
 
+function ensureRevierSelectedOrPrompt() {
+    const activeCode = db.getActiveRevierCode();
+    if (!activeCode && revierSelectModal) {
+        revierSelectModal.classList.remove('hidden');
+        if (btnCloseRevierSelect) btnCloseRevierSelect.classList.add('hidden');
+    } else if (revierSelectModal) {
+        if (btnCloseRevierSelect) btnCloseRevierSelect.classList.remove('hidden');
+    }
+}
+
 if (btnChangeRevier) {
     btnChangeRevier.addEventListener('click', () => {
-        if (revierSelectModal) revierSelectModal.classList.remove('hidden');
+        if (revierSelectModal) {
+            if (btnCloseRevierSelect) btnCloseRevierSelect.classList.remove('hidden');
+            revierSelectModal.classList.remove('hidden');
+        }
     });
 }
 
 if (btnCloseRevierSelect) {
     btnCloseRevierSelect.addEventListener('click', () => {
-        if (revierSelectModal) revierSelectModal.classList.add('hidden');
+        if (db.getActiveRevierCode() && revierSelectModal) {
+            revierSelectModal.classList.add('hidden');
+        } else {
+            alert("Bitte gib zuerst einen Revier-Code ein oder erstelle ein Revier.");
+        }
     });
 }
 
@@ -1678,7 +1695,9 @@ const btnOpenAdminDashboard = document.getElementById('btn-open-admin-dashboard'
 const btnCloseAdminDashboard = document.getElementById('btn-close-admin-dashboard');
 const adminTableBody = document.getElementById('admin-revier-table-body');
 const adminTotalCount = document.getElementById('admin-total-count');
-const btnAdminCreateDemo = document.getElementById('btn-admin-create-demo');
+const btnAdminCreateRevier = document.getElementById('btn-admin-create-revier');
+const adminNewRevierNameInput = document.getElementById('admin-new-revier-name');
+const adminNewRevierCodeInput = document.getElementById('admin-new-revier-code');
 
 function renderAdminDashboard() {
     if (!adminTableBody) return;
@@ -1716,6 +1735,24 @@ function renderAdminDashboard() {
     });
 }
 
+if (btnAdminCreateRevier) {
+    btnAdminCreateRevier.addEventListener('click', () => {
+        const name = adminNewRevierNameInput ? adminNewRevierNameInput.value.trim() : '';
+        const customCode = adminNewRevierCodeInput ? adminNewRevierCodeInput.value.trim().toUpperCase() : '';
+        
+        if (!name) {
+            alert("Bitte gib mindestens einen Reviernamen ein.");
+            return;
+        }
+
+        const newRevier = db.createRevier(name, customCode);
+        alert(`✅ Neues Revier erfolgreich angelegt!\nReviername: ${newRevier.name}\nRevier-Code: ${newRevier.code}`);
+        if (adminNewRevierNameInput) adminNewRevierNameInput.value = '';
+        if (adminNewRevierCodeInput) adminNewRevierCodeInput.value = '';
+        renderAdminDashboard();
+    });
+}
+
 window.adminSwitchRevier = (code) => {
     db.setActiveRevierCode(code);
     loadActiveRevierLayersToMap();
@@ -1728,6 +1765,7 @@ window.adminDeleteRevier = (code) => {
         db.deleteRevier(code);
         loadActiveRevierLayersToMap();
         renderAdminDashboard();
+        ensureRevierSelectedOrPrompt();
     }
 };
 
@@ -1744,17 +1782,8 @@ if (btnCloseAdminDashboard) {
     });
 }
 
-if (btnAdminCreateDemo) {
-    btnAdminCreateDemo.addEventListener('click', () => {
-        const demoCode = 'REV-DEMO' + Math.floor(Math.random() * 90 + 10);
-        db.createRevier('Demo Revier ' + demoCode, demoCode);
-        renderAdminDashboard();
-    });
-}
-
 if (btnTriggerAdminLogin) {
     btnTriggerAdminLogin.addEventListener('click', () => {
-        if (revierSelectModal) revierSelectModal.classList.add('hidden');
         if (loginBtn) loginBtn.click();
     });
 }
@@ -1763,8 +1792,8 @@ if (btnTriggerAdminLogin) {
 window.addEventListener('load', () => {
     updateRevierBadgeUI();
     db.getAllReviere(); // Trigger Auto-Migration
-    if (!db.getActiveRevierCode()) {
-        db.createRevier('Hauptrevier', 'REV-HAUPTREVIER');
+    ensureRevierSelectedOrPrompt();
+    if (db.getActiveRevierCode()) {
+        loadActiveRevierLayersToMap();
     }
-    loadActiveRevierLayersToMap();
 });
