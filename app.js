@@ -188,48 +188,113 @@ const cancelPolygonBtn = document.getElementById('cancel-polygon-btn');
 const polygonNameInput = document.getElementById('polygon-name');
 let pendingPolygon = null;
 
+const confirmFacilityBtn = document.getElementById('confirm-facility-btn');
+const confirmPathBtn = document.getElementById('confirm-path-btn');
+const confirmPolygonBtn = document.getElementById('confirm-polygon-btn');
+
+let selectedFacilityType = 'Ansitz';
+let selectedPathType = 'Weg';
+let selectedPolygonType = 'Revier';
+
 function getFacilityIcon(type) {
-    let emoji = '📍';
-    if (type === 'Ansitz') emoji = '🪑';
-    if (type === 'Wildkamera') emoji = '📷';
-    if (type === 'Kirrung') emoji = '🌽';
+    let emoji = '🪜';
+    let bg = '#064e3b';
+    let border = '#10b981';
+    
+    if (type === 'Ansitz' || type === 'Hochsitz' || type === 'Kanzel') {
+        emoji = '🪜'; // Hochsitz-Leiter / Kanzel
+        bg = '#14532d';
+        border = '#22c55e';
+    } else if (type === 'Wildkamera') {
+        emoji = '📷';
+        bg = '#1e3a8a';
+        border = '#60a5fa';
+    } else if (type === 'Kirrung') {
+        emoji = '🌽';
+        bg = '#78350f';
+        border = '#f59e0b';
+    } else if (type === 'Salzlecke') {
+        emoji = '🧂';
+        bg = '#374151';
+        border = '#9ca3af';
+    } else if (type === 'Fütterung') {
+        emoji = '🌾';
+        bg = '#365314';
+        border = '#84cc16';
+    }
     
     return L.divIcon({
         className: 'custom-facility-icon',
-        html: emoji,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-        popupAnchor: [0, -18]
+        html: `<div style="background: ${bg}; border: 2px solid ${border}; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-shadow: 0 2px 4px rgba(0,0,0,0.4);">${emoji}</div>`,
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
+        popupAnchor: [0, -20]
     });
 }
 
-// Modal Logik
+function resetDrawModesAndButtons() {
+    if (map && map.pm) {
+        map.pm.disableDraw();
+    }
+    const btnMarker = document.getElementById('btn-draw-marker');
+    const btnPolyline = document.getElementById('btn-draw-polyline');
+    const btnPolygon = document.getElementById('btn-draw-polygon');
+    
+    if (btnMarker) {
+        btnMarker.style.backgroundColor = '';
+        btnMarker.style.color = '';
+        btnMarker.textContent = '📍 Einrichtung setzen';
+    }
+    if (btnPolyline) {
+        btnPolyline.style.backgroundColor = '';
+        btnPolyline.style.color = '';
+        btnPolyline.textContent = '🚶 Wege einzeichnen';
+    }
+    if (btnPolygon) {
+        btnPolygon.style.backgroundColor = '';
+        btnPolygon.style.color = '';
+        btnPolygon.textContent = '📐 Revier einzeichnen';
+    }
+}
+
+// Facility Modal Logik
 facilityBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const type = e.currentTarget.getAttribute('data-type');
-        if (pendingMarker) {
-            // Marker aktualisieren
-            pendingMarker.setIcon(getFacilityIcon(type));
-            if (!pendingMarker.jagdappId) {
-                pendingMarker.jagdappId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                pendingMarker.reservations = [];
-            }
-            pendingMarker.jagdappType = type; // Für späteres Speichern
-            pendingMarker.jagdappName = facilityNameInput.value.trim();
-            
-            updateMarkerPopup(pendingMarker);
-            pendingMarker.openPopup();
-            
-            // In DB speichern durch Update aller Layer, da es existierend oder neu sein kann
-            if (typeof updateAllLayersInDB === 'function') {
-                updateAllLayersInDB();
-            }
-            
-            pendingMarker = null;
-        }
-        facilityModal.classList.add('hidden');
+        facilityBtns.forEach(b => b.style.borderColor = '');
+        e.currentTarget.style.borderColor = 'var(--primary)';
+        selectedFacilityType = e.currentTarget.getAttribute('data-type');
+        savePendingMarker();
     });
 });
+
+function savePendingMarker() {
+    if (pendingMarker) {
+        const type = selectedFacilityType || 'Ansitz';
+        pendingMarker.setIcon(getFacilityIcon(type));
+        if (!pendingMarker.jagdappId) {
+            pendingMarker.jagdappId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+            pendingMarker.reservations = [];
+        }
+        pendingMarker.jagdappType = type;
+        pendingMarker.jagdappName = facilityNameInput ? facilityNameInput.value.trim() : '';
+        
+        updateMarkerPopup(pendingMarker);
+        pendingMarker.openPopup();
+        
+        if (typeof updateAllLayersInDB === 'function') {
+            updateAllLayersInDB();
+        }
+        pendingMarker = null;
+    }
+    if (facilityModal) facilityModal.classList.add('hidden');
+    resetDrawModesAndButtons();
+}
+
+if (confirmFacilityBtn) {
+    confirmFacilityBtn.addEventListener('click', () => {
+        savePendingMarker();
+    });
+}
 
 if (cancelFacilityBtn) {
     cancelFacilityBtn.addEventListener('click', () => {
@@ -240,44 +305,58 @@ if (cancelFacilityBtn) {
             }
             pendingMarker = null;
         }
-        facilityModal.classList.add('hidden');
+        if (facilityModal) facilityModal.classList.add('hidden');
+        resetDrawModesAndButtons();
     });
 }
 
 // Path Modal Logik
 pathBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const type = e.currentTarget.getAttribute('data-type');
-        if (pendingPolyline) {
-            if (!pendingPolyline.jagdappId) {
-                pendingPolyline.jagdappId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            }
-            pendingPolyline.jagdappType = type;
-            pendingPolyline.jagdappName = pathNameInput.value.trim();
-            
-            if (type === 'Pirschweg') {
-                pendingPolyline.setStyle({ color: '#8b4513', dashArray: '5, 10', weight: 3 });
-            } else if (type === 'Zaun') {
-                pendingPolyline.setStyle({ color: '#1f2937', dashArray: '2, 6', weight: 4 });
-            } else {
-                pendingPolyline.setStyle({ color: '#555', weight: 4 });
-            }
-            
-            if (typeof updatePathPopup === 'function') {
-                updatePathPopup(pendingPolyline);
-            } else {
-                pendingPolyline.bindPopup(`<div style="color: black; min-width: 120px;"><b>${type}</b></div>`);
-            }
-            
-            if (typeof updateAllLayersInDB === 'function') {
-                updateAllLayersInDB();
-            }
-            
-            pendingPolyline = null;
-        }
-        pathModal.classList.add('hidden');
+        pathBtns.forEach(b => b.style.borderColor = '');
+        e.currentTarget.style.borderColor = 'var(--primary)';
+        selectedPathType = e.currentTarget.getAttribute('data-type');
+        savePendingPath();
     });
 });
+
+function savePendingPath() {
+    if (pendingPolyline) {
+        const type = selectedPathType || 'Weg';
+        if (!pendingPolyline.jagdappId) {
+            pendingPolyline.jagdappId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+        }
+        pendingPolyline.jagdappType = type;
+        pendingPolyline.jagdappName = pathNameInput ? pathNameInput.value.trim() : '';
+        
+        if (type === 'Pirschweg') {
+            pendingPolyline.setStyle({ color: '#8b4513', dashArray: '5, 10', weight: 3 });
+        } else if (type === 'Zaun') {
+            pendingPolyline.setStyle({ color: '#1f2937', dashArray: '2, 6', weight: 4 });
+        } else {
+            pendingPolyline.setStyle({ color: '#555', weight: 4 });
+        }
+        
+        if (typeof updatePathPopup === 'function') {
+            updatePathPopup(pendingPolyline);
+        } else {
+            pendingPolyline.bindPopup(`<div style="color: black; min-width: 120px;"><b>${type}</b></div>`);
+        }
+        
+        if (typeof updateAllLayersInDB === 'function') {
+            updateAllLayersInDB();
+        }
+        pendingPolyline = null;
+    }
+    if (pathModal) pathModal.classList.add('hidden');
+    resetDrawModesAndButtons();
+}
+
+if (confirmPathBtn) {
+    confirmPathBtn.addEventListener('click', () => {
+        savePendingPath();
+    });
+}
 
 if (cancelPathBtn) {
     cancelPathBtn.addEventListener('click', () => {
@@ -288,43 +367,71 @@ if (cancelPathBtn) {
             }
             pendingPolyline = null;
         }
-        pathModal.classList.add('hidden');
+        if (pathModal) pathModal.classList.add('hidden');
+        resetDrawModesAndButtons();
     });
 }
 
 // Polygon Modal Logik
 polygonBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const type = e.currentTarget.getAttribute('data-type');
-        if (pendingPolygon) {
-            if (!pendingPolygon.jagdappId) {
-                pendingPolygon.jagdappId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            }
-            pendingPolygon.jagdappName = polygonNameInput.value.trim();
-            pendingPolygon.jagdappType = type;
-            
-            if (type === 'Sperrgebiet') {
-                pendingPolygon.setStyle({ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3 });
-            } else {
-                pendingPolygon.setStyle({ color: '#3388ff', fillColor: '#3388ff', fillOpacity: 0.2 });
-                const center = pendingPolygon.getBounds().getCenter();
-                updateHuntingSeasons(center.lat, center.lng);
-            }
-            
-            if (typeof updatePolygonPopup === 'function') {
-                updatePolygonPopup(pendingPolygon);
-                pendingPolygon.openPopup();
-            }
-            
-            if (typeof updateAllLayersInDB === 'function') {
-                updateAllLayersInDB();
-            }
-            
-            pendingPolygon = null;
-        }
-        polygonModal.classList.add('hidden');
+        polygonBtns.forEach(b => b.style.borderColor = '');
+        e.currentTarget.style.borderColor = 'var(--primary)';
+        selectedPolygonType = e.currentTarget.getAttribute('data-type');
+        savePendingPolygon();
     });
 });
+
+function savePendingPolygon() {
+    if (pendingPolygon) {
+        const type = selectedPolygonType || 'Revier';
+        if (!pendingPolygon.jagdappId) {
+            pendingPolygon.jagdappId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+        }
+        pendingPolygon.jagdappName = polygonNameInput ? polygonNameInput.value.trim() : '';
+        pendingPolygon.jagdappType = type;
+        
+        if (type === 'Sperrgebiet') {
+            pendingPolygon.setStyle({ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3 });
+        } else {
+            pendingPolygon.setStyle({ color: '#3388ff', fillColor: '#3388ff', fillOpacity: 0.2 });
+            const center = pendingPolygon.getBounds().getCenter();
+            updateHuntingSeasons(center.lat, center.lng);
+        }
+        
+        if (typeof updatePolygonPopup === 'function') {
+            updatePolygonPopup(pendingPolygon);
+            pendingPolygon.openPopup();
+        }
+        
+        if (typeof updateAllLayersInDB === 'function') {
+            updateAllLayersInDB();
+        }
+        pendingPolygon = null;
+    }
+    if (polygonModal) polygonModal.classList.add('hidden');
+    resetDrawModesAndButtons();
+}
+
+if (confirmPolygonBtn) {
+    confirmPolygonBtn.addEventListener('click', () => {
+        savePendingPolygon();
+    });
+}
+
+if (cancelPolygonBtn) {
+    cancelPolygonBtn.addEventListener('click', () => {
+        if (pendingPolygon) {
+            if (!pendingPolygon.jagdappId) {
+                map.removeLayer(pendingPolygon);
+                drawnItems.removeLayer(pendingPolygon);
+            }
+            pendingPolygon = null;
+        }
+        if (polygonModal) polygonModal.classList.add('hidden');
+        resetDrawModesAndButtons();
+    });
+}
 
 if (cancelPolygonBtn) {
     cancelPolygonBtn.addEventListener('click', () => {

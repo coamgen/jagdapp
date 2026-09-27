@@ -233,44 +233,54 @@
     <!-- Modal for Facility Selection -->
     <div id="facility-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Einrichtung wählen</h2>
-            <p>Welche Art von Einrichtung haben Sie platziert?</p>
-            <input type="text" id="facility-name" placeholder="Optionaler Name (z.B. Kanzel am Wald)" style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+            <h2>📍 Einrichtung wählen</h2>
+            <p>Welche Art von Einrichtung hast du platziert?</p>
+            <input type="text" id="facility-name" placeholder="Optionaler Name (z.B. Hochsitz Waldrand)" style="width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif;">
             <div class="facility-options">
-                <button class="facility-btn" data-type="Ansitz">🪑 Ansitz</button>
+                <button class="facility-btn selected" data-type="Ansitz">🪜 Ansitz / Kanzel</button>
                 <button class="facility-btn" data-type="Wildkamera">📷 Wildkamera</button>
                 <button class="facility-btn" data-type="Kirrung">🌽 Kirrung</button>
+                <button class="facility-btn" data-type="Salzlecke">🧂 Salzlecke</button>
             </div>
-            <button id="cancel-facility-btn" class="secondary-btn mt-3">Löschen / Abbrechen</button>
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button id="confirm-facility-btn" class="primary-btn">✅ Platzieren & Speichern</button>
+                <button id="cancel-facility-btn" class="secondary-btn">❌ Abbrechen</button>
+            </div>
         </div>
     </div>
 
     <!-- Modal for Path Selection -->
     <div id="path-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Wegart wählen</h2>
-            <p>Welche Art von Weg haben Sie eingezeichnet?</p>
-            <input type="text" id="path-name" placeholder="Optionaler Name (z.B. Hauptweg)" style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+            <h2>🚶 Wegart wählen</h2>
+            <p>Welche Art von Weg hast du eingezeichnet?</p>
+            <input type="text" id="path-name" placeholder="Optionaler Name (z.B. Hauptweg)" style="width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif;">
             <div class="facility-options">
-                <button class="path-btn" data-type="Weg">🚶 Normaler Weg</button>
+                <button class="path-btn selected" data-type="Weg">🚶 Normaler Weg</button>
                 <button class="path-btn" data-type="Pirschweg">🤫 Pirschweg</button>
                 <button class="path-btn" data-type="Zaun">🚧 Zaun</button>
             </div>
-            <button id="cancel-path-btn" class="secondary-btn mt-3">Löschen / Abbrechen</button>
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button id="confirm-path-btn" class="primary-btn">✅ Speichern</button>
+                <button id="cancel-path-btn" class="secondary-btn">❌ Abbrechen</button>
+            </div>
         </div>
     </div>
 
     <!-- Modal for Polygon Selection -->
     <div id="polygon-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Flächenart wählen</h2>
+            <h2>📐 Flächenart wählen</h2>
             <p>Welche Art von Fläche hast du eingezeichnet?</p>
-            <input type="text" id="polygon-name" placeholder="Optionaler Name (z.B. Hauptrevier, Ruhezone)" style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+            <input type="text" id="polygon-name" placeholder="Optionaler Name (z.B. Hauptrevier, Ruhezone)" style="width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif;">
             <div class="facility-options">
-                <button class="polygon-btn" data-type="Revier">📐 Jagdrevier</button>
+                <button class="polygon-btn selected" data-type="Revier">📐 Jagdrevier</button>
                 <button class="polygon-btn" data-type="Sperrgebiet">🚫 Sperrgebiet</button>
             </div>
-            <button id="cancel-polygon-btn" class="secondary-btn mt-3">Löschen / Abbrechen</button>
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button id="confirm-polygon-btn" class="primary-btn">✅ Speichern</button>
+                <button id="cancel-polygon-btn" class="secondary-btn">❌ Abbrechen</button>
+            </div>
         </div>
     </div>
 
