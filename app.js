@@ -1683,6 +1683,9 @@ function toggleMobileSidebar(show) {
     }
 }
 
+const mapMenuToggleBtn = document.getElementById('map-menu-toggle-btn');
+
+if (mapMenuToggleBtn) mapMenuToggleBtn.addEventListener('click', () => toggleMobileSidebar());
 if (mobileToggleMenuBtn) mobileToggleMenuBtn.addEventListener('click', () => toggleMobileSidebar());
 if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', () => toggleMobileSidebar(false));
 if (mobileBackdrop) mobileBackdrop.addEventListener('click', () => toggleMobileSidebar(false));

@@ -35,19 +35,24 @@
 </head>
 <body>
 
-    <!-- Mobile Header Bar -->
-    <div id="mobile-top-bar" class="mobile-only">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 1.3rem;">🦌</span>
-            <div>
-                <div id="mobile-revier-title" style="font-weight: 700; font-size: 0.9rem; color: white;">Kein Revier</div>
-                <div id="mobile-revier-code" style="font-size: 0.75rem; color: var(--primary);">Code: ----</div>
-            </div>
-        </div>
-        <button id="mobile-toggle-menu-btn" class="mobile-toggle-btn">☰ Menü</button>
-    </div>
-
     <div id="app-container">
+        <!-- Floating Map Menu Toggle Button (Always accessible) -->
+        <button id="map-menu-toggle-btn" class="map-floating-menu-btn">
+            <span>☰ Menü</span>
+        </button>
+
+        <!-- Mobile Header Bar -->
+        <div id="mobile-top-bar" class="mobile-only">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.3rem;">🦌</span>
+                <div>
+                    <div id="mobile-revier-title" style="font-weight: 700; font-size: 0.9rem; color: white;">Kein Revier</div>
+                    <div id="mobile-revier-code" style="font-size: 0.75rem; color: var(--primary);">Code: ----</div>
+                </div>
+            </div>
+            <button id="mobile-toggle-menu-btn" class="mobile-toggle-btn">☰ Menü</button>
+        </div>
+
         <!-- Sidebar Drawer Overlay for Mobile -->
         <div id="mobile-backdrop" class="mobile-backdrop hidden"></div>
 
@@ -56,7 +61,7 @@
             <div class="sidebar-header" style="position: relative;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <h1>🦌 Jagdapp</h1>
-                    <button id="sidebar-close-btn" class="mobile-only sidebar-close-btn">✕</button>
+                    <button id="sidebar-close-btn" class="sidebar-close-btn">✕ Schließen</button>
                 </div>
                 <div id="active-revier-badge" style="margin-top: 10px; font-size: 0.85rem; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--primary); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                     <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
