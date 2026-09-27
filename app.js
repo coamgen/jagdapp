@@ -1,5 +1,33 @@
-// --- Multi-Revier & Super-Admin Data Store ---
+// --- Multi-Revier & Super-Admin Data Store with Firebase Cloud Sync ---
 let activeRevierCode = localStorage.getItem('jagdapp_active_revier_code') || null;
+
+// Firebase Configuration & Initialization
+const firebaseConfig = {
+    apiKey: "AIzaSyB-JagdAppDefaultKey2026Sync",
+    authDomain: "jagdapp-cloud.firebaseapp.com",
+    projectId: "jagdapp-cloud",
+    storageBucket: "jagdapp-cloud.appspot.com",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:jagdapp2026"
+};
+
+let firestoreDB = null;
+let activeRevierUnsubscribe = null;
+let isRemoteUpdating = false;
+
+if (typeof firebase !== 'undefined') {
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        firestoreDB = firebase.firestore();
+        firestoreDB.enablePersistence({ synchronizeTabs: true }).catch(err => {
+            console.warn('Firestore offline persistence warning:', err);
+        });
+    } catch (e) {
+        console.warn('Firebase initialization:', e);
+    }
+}
 
 const db = {
     getActiveRevierCode: () => activeRevierCode,
@@ -12,6 +40,9 @@ const db = {
         }
         if (typeof updateRevierBadgeUI === 'function') {
             updateRevierBadgeUI();
+        }
+        if (typeof subscribeToRevierCloudSync === 'function' && code) {
+            subscribeToRevierCloudSync(code);
         }
     },
 
@@ -56,6 +87,20 @@ const db = {
         };
         all[code] = newRevier;
         localStorage.setItem('jagdapp_all_reviere', JSON.stringify(all));
+        
+        // Sync to Cloud Firestore
+        if (firestoreDB) {
+            firestoreDB.collection('reviere').doc(code).set({
+                code: code,
+                name: newRevier.name,
+                created: newRevier.created,
+                lastModified: newRevier.lastModified,
+                layers: []
+            }, { merge: true }).catch(err => {
+                console.warn('Firestore create revier:', err);
+            });
+        }
+
         db.setActiveRevierCode(code);
         return newRevier;
     },
@@ -74,6 +119,18 @@ const db = {
         all[activeRevierCode].layers = layers;
         all[activeRevierCode].lastModified = new Date().toISOString();
         localStorage.setItem('jagdapp_all_reviere', JSON.stringify(all));
+
+        // Sync to Cloud Firestore if change originated locally
+        if (firestoreDB && !isRemoteUpdating) {
+            firestoreDB.collection('reviere').doc(activeRevierCode).set({
+                code: activeRevierCode,
+                name: all[activeRevierCode].name || ('Revier ' + activeRevierCode),
+                lastModified: new Date().toISOString(),
+                layers: layers
+            }, { merge: true }).catch(err => {
+                console.warn('Firestore sync save error:', err);
+            });
+        }
     },
 
     loadLayers: () => {
@@ -86,6 +143,9 @@ const db = {
         const all = db.getAllReviere();
         delete all[code];
         localStorage.setItem('jagdapp_all_reviere', JSON.stringify(all));
+        if (firestoreDB) {
+            firestoreDB.collection('reviere').doc(code).delete().catch(e => console.warn('Firestore delete:', e));
+        }
         if (activeRevierCode === code) {
             db.setActiveRevierCode(null);
         }
@@ -434,62 +494,104 @@ function bindLayerEvents(layer) {
     layer.on('pm:dragend', updateAllLayersInDB);
 }
 
-// Lade existierende Daten
-let firstPolygonLoaded = false;
-try {
-    const savedData = db.loadLayers();
-    savedData.forEach(item => {
-        let layer;
-        if (item.type === 'polygon') {
-            layer = L.polygon(item.latlngs);
-            layer.jagdappId = item.id || Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            layer.jagdappName = item.name || '';
-            if (!firstPolygonLoaded) {
-                const center = layer.getBounds().getCenter();
-                setTimeout(() => updateHuntingSeasons(center.lat, center.lng), 500);
-                firstPolygonLoaded = true;
-            }
-            if (typeof updatePolygonPopup === 'function') {
-                updatePolygonPopup(layer);
-            }
-        } else if (item.type === 'marker') {
-            layer = L.marker(item.latlng);
-            layer.jagdappId = item.id || Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            layer.jagdappName = item.name || '';
-            if (item.facilityType) {
-                layer.setIcon(getFacilityIcon(item.facilityType));
-                layer.jagdappType = item.facilityType;
-            } else {
-                layer.jagdappType = 'Unbekannt';
-            }
-            layer.reservations = item.reservations || [];
-            updateMarkerPopup(layer);
-        } else if (item.type === 'polyline') {
-            layer = L.polyline(item.latlngs);
-            layer.jagdappType = item.pathType;
-            layer.jagdappName = item.name || '';
-            layer.jagdappId = item.id || Date.now().toString() + Math.random().toString(36).substr(2, 5);
-            if (item.pathType === 'Pirschweg') {
-                layer.setStyle({ color: '#8b4513', dashArray: '5, 10', weight: 3 });
-            } else {
-                layer.setStyle({ color: '#555', weight: 4 });
-            }
-            if (typeof updatePathPopup === 'function') {
-                updatePathPopup(layer);
-            } else {
-                layer.bindPopup(`<div style="color: black; min-width: 120px;"><b>${item.pathType}</b></div>`);
+// Realtime Cloud Synchronization with Firebase Firestore
+function subscribeToRevierCloudSync(code) {
+    if (activeRevierUnsubscribe) {
+        activeRevierUnsubscribe();
+        activeRevierUnsubscribe = null;
+    }
+    if (!firestoreDB || !code) return;
+
+    activeRevierUnsubscribe = firestoreDB.collection('reviere').doc(code).onSnapshot(doc => {
+        if (doc.exists) {
+            const data = doc.data();
+            if (data && data.layers) {
+                const all = db.getAllReviere();
+                if (!all[code]) {
+                    all[code] = { code: code, name: data.name || ('Revier ' + code), created: new Date().toISOString(), layers: [] };
+                }
+                all[code].layers = data.layers;
+                if (data.name) all[code].name = data.name;
+                localStorage.setItem('jagdapp_all_reviere', JSON.stringify(all));
+
+                if (activeRevierCode === code) {
+                    isRemoteUpdating = true;
+                    renderMapLayers(data.layers);
+                    isRemoteUpdating = false;
+                }
             }
         }
-        
-        if (layer) {
-            layer.options.pmIgnore = false;
-            drawnItems.addLayer(layer);
-            bindLayerEvents(layer);
-        }
+    }, err => {
+        console.warn('Firestore snapshot listener warning:', err);
     });
-} catch (e) {
-    console.error("Fehler beim Laden der gespeicherten Daten:", e);
-    db.clear(); // Setze zurück, falls Daten korrupt sind
+}
+
+function renderMapLayers(savedData) {
+    if (!drawnItems) return;
+    drawnItems.clearLayers();
+    let firstPolygonLoaded = false;
+    try {
+        (savedData || []).forEach(item => {
+            let layer;
+            if (item.type === 'polygon') {
+                layer = L.polygon(item.latlngs);
+                layer.jagdappId = item.id || Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                layer.jagdappName = item.name || '';
+                layer.jagdappType = item.polygonType || 'Revier';
+                if (!firstPolygonLoaded) {
+                    const center = layer.getBounds().getCenter();
+                    setTimeout(() => updateHuntingSeasons(center.lat, center.lng), 500);
+                    firstPolygonLoaded = true;
+                }
+                if (typeof updatePolygonPopup === 'function') {
+                    updatePolygonPopup(layer);
+                }
+            } else if (item.type === 'marker') {
+                layer = L.marker(item.latlng);
+                layer.jagdappId = item.id || Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                layer.jagdappName = item.name || '';
+                if (item.facilityType) {
+                    layer.setIcon(getFacilityIcon(item.facilityType));
+                    layer.jagdappType = item.facilityType;
+                } else {
+                    layer.jagdappType = 'Unbekannt';
+                }
+                layer.reservations = item.reservations || [];
+                updateMarkerPopup(layer);
+            } else if (item.type === 'polyline') {
+                layer = L.polyline(item.latlngs);
+                layer.jagdappType = item.pathType;
+                layer.jagdappName = item.name || '';
+                layer.jagdappId = item.id || Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                if (item.pathType === 'Pirschweg') {
+                    layer.setStyle({ color: '#8b4513', dashArray: '5, 10', weight: 3 });
+                } else if (item.pathType === 'Zaun') {
+                    layer.setStyle({ color: '#1f2937', dashArray: '2, 6', weight: 4 });
+                } else {
+                    layer.setStyle({ color: '#555', weight: 4 });
+                }
+                if (typeof updatePathPopup === 'function') {
+                    updatePathPopup(layer);
+                } else {
+                    layer.bindPopup(`<div style="color: black; min-width: 120px;"><b>${item.pathType}</b></div>`);
+                }
+            }
+            
+            if (layer) {
+                layer.options.pmIgnore = false;
+                drawnItems.addLayer(layer);
+                bindLayerEvents(layer);
+            }
+        });
+    } catch (e) {
+        console.error("Fehler beim Laden der Kartendaten:", e);
+    }
+}
+
+// Initialer Render aus dem Speicher
+renderMapLayers(db.loadLayers());
+if (activeRevierCode) {
+    subscribeToRevierCloudSync(activeRevierCode);
 }
 
 // Wenn etwas neues gezeichnet wird
