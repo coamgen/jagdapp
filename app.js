@@ -1639,6 +1639,8 @@ window.addEventListener('DOMContentLoaded', () => {
 function updateRevierBadgeUI() {
     const titleEl = document.getElementById('active-revier-title');
     const codeEl = document.getElementById('active-revier-code');
+    const mobTitleEl = document.getElementById('mobile-revier-title');
+    const mobCodeEl = document.getElementById('mobile-revier-code');
     const code = db.getActiveRevierCode();
     
     if (code) {
@@ -1646,10 +1648,63 @@ function updateRevierBadgeUI() {
         const name = revier ? revier.name : 'Revier ' + code;
         if (titleEl) titleEl.textContent = name;
         if (codeEl) codeEl.textContent = 'Code: ' + code;
+        if (mobTitleEl) mobTitleEl.textContent = name;
+        if (mobCodeEl) mobCodeEl.textContent = 'Code: ' + code;
     } else {
         if (titleEl) titleEl.textContent = 'Kein Revier gewählt';
         if (codeEl) codeEl.textContent = 'Code: ----';
+        if (mobTitleEl) mobTitleEl.textContent = 'Kein Revier';
+        if (mobCodeEl) mobCodeEl.textContent = 'Code: ----';
     }
+}
+
+// --- Mobile Sidebar Drawer & Quick Dock Listeners ---
+const sidebarEl = document.getElementById('sidebar');
+const mobileBackdrop = document.getElementById('mobile-backdrop');
+const mobileToggleMenuBtn = document.getElementById('mobile-toggle-menu-btn');
+const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+const mobileDockMenuBtn = document.getElementById('mobile-dock-menu');
+
+const mobileDockMarker = document.getElementById('mobile-dock-marker');
+const mobileDockPolyline = document.getElementById('mobile-dock-polyline');
+const mobileDockPolygon = document.getElementById('mobile-dock-polygon');
+
+function toggleMobileSidebar(show) {
+    if (!sidebarEl) return;
+    const isCurrentlyOpen = sidebarEl.classList.contains('mobile-open');
+    const shouldOpen = typeof show === 'boolean' ? show : !isCurrentlyOpen;
+    
+    if (shouldOpen) {
+        sidebarEl.classList.add('mobile-open');
+        if (mobileBackdrop) mobileBackdrop.classList.remove('hidden');
+    } else {
+        sidebarEl.classList.remove('mobile-open');
+        if (mobileBackdrop) mobileBackdrop.classList.add('hidden');
+    }
+}
+
+if (mobileToggleMenuBtn) mobileToggleMenuBtn.addEventListener('click', () => toggleMobileSidebar());
+if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', () => toggleMobileSidebar(false));
+if (mobileBackdrop) mobileBackdrop.addEventListener('click', () => toggleMobileSidebar(false));
+if (mobileDockMenuBtn) mobileDockMenuBtn.addEventListener('click', () => toggleMobileSidebar());
+
+if (mobileDockMarker) {
+    mobileDockMarker.addEventListener('click', () => {
+        if (btnMarker) btnMarker.click();
+        toggleMobileSidebar(false);
+    });
+}
+if (mobileDockPolyline) {
+    mobileDockPolyline.addEventListener('click', () => {
+        if (btnPolyline) btnPolyline.click();
+        toggleMobileSidebar(false);
+    });
+}
+if (mobileDockPolygon) {
+    mobileDockPolygon.addEventListener('click', () => {
+        if (btnPolygon) btnPolygon.click();
+        toggleMobileSidebar(false);
+    });
 }
 
 function loadActiveRevierLayersToMap() {
