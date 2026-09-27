@@ -279,14 +279,33 @@ if (cancelPolygonBtn) {
     });
 }
 
-// --- Auth Flow (Super-Admin Mock) ---
+// --- Auth Flow (Super-Admin mit SHA-256 Passwortschutz) ---
+const ADMIN_HASH = 'dab0e1c75c31d0b1b3f55933c01ac2dc79af099a4c157a83c35efa674cbdf3e2';
+
+async function hashPassword(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 if (loginBtn) {
-    loginBtn.addEventListener('click', () => {
-        currentUser = {
-            email: 'admin@jagdapp.de',
-            uid: 'admin_super_user_123'
-        };
-        updateUI();
+    loginBtn.addEventListener('click', async () => {
+        const input = prompt("🔐 Bitte Super-Admin Passwort eingeben:");
+        if (!input) return;
+        
+        const inputHash = await hashPassword(input);
+        if (inputHash === ADMIN_HASH) {
+            currentUser = {
+                email: 'admin@jagdapp.de',
+                uid: 'admin_super_user_123'
+            };
+            updateUI();
+            alert("✅ Erfolgreich als Super-Admin angemeldet!");
+        } else {
+            alert("❌ Falsches Passwort! Zugriff verweigert.");
+        }
     });
 }
 
