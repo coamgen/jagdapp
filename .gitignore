@@ -1,0 +1,7 @@
+.DS_Store
+Thumbs.db
+*.log
+overpass_test*.json
+test_nominatim.json
+index_test.js
+server.ps1

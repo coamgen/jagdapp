@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jagdapp - Revierverwaltung</title>
+    
+    <!-- PWA Setup -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#10b981" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
+
+    <!-- Leaflet CSS (Local) -->
+    <link rel="stylesheet" href="leaflet.css" />
+    
+    <!-- Leaflet-Geoman CSS (Local) -->
+    <link rel="stylesheet" href="leaflet-geoman.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Turf.js for Area Calculation (Local) -->
+    <script src="turf.min.js"></script>
+
+    <!-- osmtogeojson for Overpass API parsing (Local) -->
+    <script src="osmtogeojson.js"></script>
+
+    <!-- QRious for offline QR Code generation -->
+    <script src="qrious.min.js"></script>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h1>🦌 Jagdapp</h1>
+                <div id="active-revier-badge" style="margin-top: 10px; font-size: 0.85rem; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--primary); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <div id="active-revier-title" style="font-weight: bold; color: white;">Kein Revier</div>
+                        <div id="active-revier-code" style="font-size: 0.75rem; color: var(--primary);">Code: ----</div>
+                    </div>
+                    <button id="btn-change-revier" style="width: auto; padding: 4px 10px; font-size: 0.75rem; flex-shrink: 0;" class="secondary-btn">Wechseln</button>
+                </div>
+            </div>
+            
+            <div id="auth-section" class="sidebar-section">
+                <p class="small-text" style="margin-bottom: 8px;">Super-Admin Modus (System-Verwaltung):</p>
+                <button id="login-btn" class="secondary-btn" style="font-size: 0.85rem; padding: 8px;">👑 Super-Admin Login</button>
+            </div>
+
+            <div id="user-section" class="sidebar-section hidden">
+                <p style="color: var(--primary); font-size: 0.85rem; font-weight: bold;">👑 Super-Admin Modus aktiv</p>
+                <p class="small-text" id="user-email" style="margin-bottom: 8px;"></p>
+                <button id="btn-open-admin-dashboard" class="primary-btn" style="margin-bottom: 6px; padding: 8px; font-size: 0.85rem;">📊 Admin-Dashboard (Alle Reviere)</button>
+                <button id="logout-btn" class="secondary-btn" style="padding: 6px; font-size: 0.8rem;">Abmelden</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h2>Werkzeuge</h2>
+                <p class="small-text" style="margin-bottom: 12px;">Klicken Sie auf einen Button, um auf der Karte zu zeichnen.</p>
+                <button id="btn-draw-marker" class="secondary-btn" style="margin-bottom: 8px;">📍 Einrichtung setzen</button>
+                <button id="btn-draw-polyline" class="secondary-btn" style="margin-bottom: 8px;">🚶 Wege einzeichnen</button>
+                <button id="btn-draw-polygon" class="secondary-btn">📐 Fläche einzeichnen</button>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 16px 0;">
+                <p class="small-text" style="margin-bottom: 8px;">Oder Gemeinde automatisch laden:</p>
+                <input type="text" id="auto-municipality-input" placeholder="z.B. Kassel" style="width: 100%; padding: 8px; margin-bottom: 8px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+                <button id="btn-auto-municipality" class="primary-btn">🏙️ Gemeinde-Grenze laden</button>
+            </div>
+
+            <div class="sidebar-section" id="seasons-section">
+                <h2 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🦌 Jagdzeiten</span> 
+                    <span id="current-state" style="font-size: 0.75rem; font-weight: normal; background: rgba(16, 185, 129, 0.2); color: var(--primary); padding: 2px 8px; border-radius: 12px;">Kein Revier</span>
+                </h2>
+                <div id="seasons-list" style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-top: 12px;">
+                    Zeichnen Sie ein Revier (Polygon) ein, um die Jagdzeiten für Schalenwild im jeweiligen Bundesland zu laden.
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="share-section">
+                <h2>📲 Revier Teilen & Importieren</h2>
+                <p class="small-text">Datenschutzfreundlich & ohne Passwort – Teile dein Revier per Code!</p>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button id="btn-export-revier" class="primary-btn">📤 Revier-Datei exportieren</button>
+                    <button id="btn-import-revier" class="secondary-btn">📥 Revier-Datei importieren</button>
+                    <button id="btn-qr-share" class="secondary-btn">📱 Per QR-Code / Link teilen</button>
+                    <input type="file" id="import-file-input" accept=".json,.jagdapp" style="display: none;" />
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Weather Widget -->
+        <div id="weather-widget" class="weather-widget">
+            <div id="weather-icon" style="font-size: 1.5rem; margin-right: 4px;" title="Aktuelles Wetter">⛅</div>
+            <div class="wind-icon" id="wind-arrow" title="Windrichtung">↑</div>
+            <div class="wind-info">
+                <span id="wind-speed">Wind lädt...</span>
+            </div>
+        </div>
+
+        <!-- Interactive Edit Banner -->
+        <div id="edit-banner" class="edit-banner hidden">
+            <span id="edit-banner-text">📍 Reviergrenzen bearbeiten</span>
+            <button id="edit-banner-btn" class="primary-btn" style="width: auto; padding: 6px 16px; font-size: 0.85rem; height: auto;">💾 Speichern / Fertig</button>
+        </div>
+
+        <!-- Map Container -->
+        <main id="map"></main>
+    </div>
+
+    <!-- Leaflet JS (Local) -->
+    <script src="leaflet.js"></script>
+    
+    <!-- Leaflet-Geoman JS (Local) -->
+    <script src="leaflet-geoman.js"></script>
+
+    <!-- Firebase SDKs (v8 for simpler CDN usage without modules, or v9 compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <!-- Revier Selection Modal -->
+    <div id="revier-select-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 480px; text-align: left;">
+            <h2 style="text-align: center;">🦌 Revier Auswählen</h2>
+            <p class="small-text" style="text-align: center; margin-bottom: 20px;">Gib einen Revier-Code ein, um einem bestehenden Revier beizutreten, oder erstelle ein neues Revier.</p>
+            
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 8px;">🔑 Revier-Code eingeben</h3>
+                <input type="text" id="join-code-input" placeholder="z.B. REV-8X92" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif; text-transform: uppercase;">
+                <button id="btn-join-revier" class="primary-btn">Dem Revier beitreten</button>
+            </div>
+
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 8px;">✨ Neues Revier erstellen</h3>
+                <input type="text" id="new-revier-name" placeholder="Name des Reviers (z.B. Revier Eichwald)" style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-family: 'Inter', sans-serif;">
+                <button id="btn-create-revier" class="secondary-btn">Neues Revier anlegen</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                <button id="btn-close-revier-select" class="secondary-btn" style="width: auto; padding: 8px 16px;">Schließen</button>
+                <button id="btn-trigger-admin-login" style="width: auto; padding: 8px 12px; font-size: 0.8rem; background: transparent; color: var(--text-muted); border: none; cursor: pointer;">👑 Super-Admin Access</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Super-Admin Dashboard Modal -->
+    <div id="admin-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 720px; width: 95%; text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 style="margin: 0;">👑 Super-Admin Dashboard</h2>
+                <button id="btn-close-admin-dashboard" class="secondary-btn" style="width: auto; padding: 4px 12px;">✖</button>
+            </div>
+            <p class="small-text" style="margin-bottom: 16px;">Als Super-Admin hast du Vollzugriff auf alle im System registrierten Reviere.</p>
+
+            <div style="max-height: 400px; overflow-y: auto; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; color: var(--text-main);">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border-color); text-align: left; color: var(--primary);">
+                            <th style="padding: 8px;">Code</th>
+                            <th style="padding: 8px;">Name</th>
+                            <th style="padding: 8px;">Elemente</th>
+                            <th style="padding: 8px;">Zuletzt geändert</th>
+                            <th style="padding: 8px; text-align: right;">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-revier-table-body">
+                        <!-- Filled dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span id="admin-total-count" class="small-text" style="color: var(--text-muted);">Gesamt: 0 Reviere</span>
+                <button id="btn-admin-create-demo" class="secondary-btn" style="width: auto; padding: 6px 14px; font-size: 0.8rem;">➕ Demo-Revier erstellen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Facility Selection -->
+    <div id="facility-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Einrichtung wählen</h2>
+            <p>Welche Art von Einrichtung haben Sie platziert?</p>
+            <input type="text" id="facility-name" placeholder="Optionaler Name (z.B. Kanzel am Wald)" style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+            <div class="facility-options">
+                <button class="facility-btn" data-type="Ansitz">🪑 Ansitz</button>
+                <button class="facility-btn" data-type="Wildkamera">📷 Wildkamera</button>
+                <button class="facility-btn" data-type="Kirrung">🌽 Kirrung</button>
+            </div>
+            <button id="cancel-facility-btn" class="secondary-btn mt-3">Löschen / Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- Modal for Path Selection -->
+    <div id="path-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Wegart wählen</h2>
+            <p>Welche Art von Weg haben Sie eingezeichnet?</p>
+            <input type="text" id="path-name" placeholder="Optionaler Name (z.B. Hauptweg)" style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+            <div class="facility-options">
+                <button class="path-btn" data-type="Weg">🚶 Normaler Weg</button>
+                <button class="path-btn" data-type="Pirschweg">🤫 Pirschweg</button>
+                <button class="path-btn" data-type="Zaun">🚧 Zaun</button>
+            </div>
+            <button id="cancel-path-btn" class="secondary-btn mt-3">Löschen / Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- Modal for Polygon Selection -->
+    <div id="polygon-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Flächenart wählen</h2>
+            <p>Welche Art von Fläche hast du eingezeichnet?</p>
+            <input type="text" id="polygon-name" placeholder="Optionaler Name (z.B. Hauptrevier, Ruhezone)" style="width: 100%; padding: 8px; margin-bottom: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+            <div class="facility-options">
+                <button class="polygon-btn" data-type="Revier">📐 Jagdrevier</button>
+                <button class="polygon-btn" data-type="Sperrgebiet">🚫 Sperrgebiet</button>
+            </div>
+            <button id="cancel-polygon-btn" class="secondary-btn mt-3">Löschen / Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="booking-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Ansitz Reservieren</h2>
+            <p>Wann möchten Sie diesen Ansitz belegen?</p>
+            <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 24px;">
+                <label style="color: var(--text-muted); font-size: 0.9rem;">
+                    Von: <input type="datetime-local" id="booking-start" style="width: 100%; padding: 8px; margin-top: 4px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+                </label>
+                <label style="color: var(--text-muted); font-size: 0.9rem;">
+                    Bis: <input type="datetime-local" id="booking-end" style="width: 100%; padding: 8px; margin-top: 4px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white; font-family: 'Inter', sans-serif;">
+                </label>
+            </div>
+            <button id="save-booking-btn" class="primary-btn">Reservieren</button>
+            <button id="cancel-booking-btn" class="secondary-btn mt-3">Abbrechen</button>
+        </div>
+    </div>
+
+    <!-- QR Code Share Modal -->
+    <div id="qr-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 440px;">
+            <h2>📱 Revier per QR-Code / Link teilen</h2>
+            <p class="small-text">Scannen Sie diesen Code mit der Smartphone-Kamera eines Mitjägers, um Ihr Revier direkt zu übertragen:</p>
+            <div style="margin: 16px 0; display: flex; justify-content: center; background: white; padding: 16px; border-radius: 12px;">
+                <canvas id="qr-canvas"></canvas>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <button id="copy-share-link-btn" class="primary-btn" style="font-size: 0.85rem;">🔗 Link kopieren</button>
+            </div>
+            <button id="close-qr-btn" class="secondary-btn">Schließen</button>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+</html>
